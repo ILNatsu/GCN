@@ -1,16 +1,16 @@
 
-config.py：预处理、测试数据、模型参数等位置信息
-data.py：为原始Argoverse数据处理
-data_huawei.py：为华为实车数据预处理
-data_huawei_attrack.py：华为实车数据增强预处理（对道路进行不同程度弯曲预处理）
-largecurvature_search_huawei.py：数据挖掘（弯道挖掘、直道挖掘、筛选历史轨迹满足增强模型中的限速、判断ego车辆是否在道路上、ego车辆轨迹是否为直线等）
-preprocess_data.py：数据预处理（训练、测试、验证集）
-tf_general_vis.py：可视化（道路中心线、车辆、预测轨迹、真值等）
-result_plot.py：可视化（对弯曲后的数据进行可视化，包含道路中心线、数据增强后的未来轨迹）
-test.py：模型测试
-train.py：模型训练
-lanegcn.py：模型结构
-attack_functions.py：数据增强函数（三种：弯曲、双弯道、ripple）
+config.py：预处理、测试数据、模型参数等位置信息;
+data.py：为原始Argoverse数据处理;
+data_huawei.py：为华为实车数据预处理;
+data_huawei_attrack.py：华为实车数据增强预处理（对道路进行不同程度弯曲预处理）;
+largecurvature_search_huawei.py：数据挖掘（弯道挖掘、直道挖掘、筛选历史轨迹满足增强模型中的限速、判断ego车辆是否在道路上、ego车辆轨迹是否为直线等）;
+preprocess_data.py：数据预处理（训练、测试、验证集）;
+tf_general_vis.py：可视化（道路中心线、车辆、预测轨迹、真值等）;
+result_plot.py：可视化（对弯曲后的数据进行可视化，包含道路中心线、数据增强后的未来轨迹）;
+test.py：模型测试;
+train.py：模型训练;
+lanegcn.py：模型结构;
+attack_functions.py：数据增强函数（三种：弯曲、双弯道、ripple）;
 
 
 # GCN# LaneGCN: Learning Lane Graph Representations for Motion Forecasting
