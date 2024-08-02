@@ -1,0 +1,108 @@
+class MoE(nn.Module):
+    def __init__(self, n_experts, n_agt, n_ctx):
+        super(MoE,self).__init__()
+        self.experts = nn.ModuleList([SceneTF(n_agt, n_ctx)for _ in range(n_experts)])
+        self.gating = nn.Sequential(
+            nn.Linear(n_agt + n_ctx, n_experts),
+            nn.Softmax(dim=-1)
+        )
+
+    def forward(self, agts, ctx):
+        #合并代理上下文特征
+        combined = torch.cat((agts, ctx), dim=1)
+        #门控网络输出每个专家的权重
+        gating_weights = self.gating(combined)
+
+        #初始化输出
+        output = torch.zeros_like(ctx)
+        #遍历每个专家，并加权其输出
+        for i, expert in enumerate(self.experts):
+            expert_output = expert(agts, ctx)
+            output += gating_weights[:, i].unsqueeze(-1) * expert_output
+
+        return output
+
+class SceneTF(nn.Module):
+    #设置Scene Transformer模型实现
+    def __init__(self, n_agt, n_ctx, n_experts):
+        super(SceneTF, self).__init__()
+        #初始化代码
+        # self.config = config
+        self.moe = MoE(n_experts, n_agt, n_ctx)
+        self.agt = nn.Linear(n_agt, n_agt)
+        self.ctx = nn.Linear(n_ctx, n_ctx)
+        self.norm1 = nn.LayerNorm(n_agt)
+        self.norm2 = nn.LayerNorm(n_ctx)
+        self.query = nn.Linear(n_agt, n_ctx)
+        self.dist = nn.Sequential(
+            nn.Linear(2, n_ctx),
+            nn.ReLU(inplace=True),
+            nn.Linear(n_ctx, n_ctx)
+        )
+        self.ctx_seq = nn.Sequential(
+            nn.Linear(3 * n_ctx, n_agt),
+            nn.Linear(n_agt, n_ctx, bias=False)
+        )
+
+        def self_attention(self, agts, ctx):
+        #将n_ctx 设定为 SceneTransformer 的上下文特征维度
+            query = self.query(agts)
+            attn_scores = torch.matmul(query, ctx.transpose(1,2))
+            attn_weigts = F.softmax(attn_scores, dim=-1)
+            attn_output = torch.matmul(attn_weights, ctx)
+        
+            return attn_output, attn_weights
+
+        def forward(self, agts, ctx, agt_ids, ctx_ids, dist_th=None):
+            #如果上下文为空，则直接返回处理后的代理
+            if len(ctx) == 0:
+                return self.process_agts(agts)
+
+            #计算并筛选距离
+            hi, wi = [], []
+            agt_ctrs, ctx_ctrs = self.extract_centers(agts, ctx, agt_ids, ctx_ids)
+            hi, wi =self.filter_by_distance(agt_ctrs, ctx_ctrs, dist_th)
+
+            #用MoE处理筛选过的代理和上下文
+            moe_output = self.moe(agts, ctx)
+
+            #处理筛选过的上下文
+            query = self.query(agts[hi])
+            ctx_selected = ctx[wi]
+            ctx_comb = self.combine_ctx(dist_th, query, ctx_selected)
+
+            #更新代理状态
+            agts_updated = self.update_agts(agts, ctx_comb, hi)
+
+            return agts_updated
+
+        def extract_centers(self, agts, ctx, agt_ids, ctx_ids):
+            #提取代理和上下文的中心位置
+            return agtds[:, :2], ctx[:, :2]#假设前两维为位置信息    
+
+        def filter_by_distance(self, agt_ctrs, ctx_ctrs, dist_th):
+            hi, wi = [], []
+            for i in range(len(agt_ctrs)):
+                dist = torch.norm(agt_ctrs[i] - ctx_ctrs, dim=1)
+                mask = dist <= dist_th
+                if torch.any(mask):
+                    hi.append(i)
+        
+            
+                #wi.append(mask.nonzero(as_tuple=False).squeeze().tolist())
+            wi.append(mask.nonzero(as_tuple=True).squeeze().tolist())
+            return hi, wi
+
+        def combine_ctx(self, dist_th, query, ctx):
+            #使用注意力机制合并上下文信息
+            attn_score = torch.matmul(query, ctx.transpose(1, 2))
+            attn_weights = F.softmax(attn_scores, dim=-1)
+            ctx_comb = torch.matmul(attn_weights, ctx)
+            return ctx_comb
+        
+        def update_agts(self, agts, ctx_comb, hi):
+            #更新代理的状态
+            agts_updated = agts.clone()
+            agts_updated[hi] = self.norm(agts[hi] + ctx_comb)
+            agts_updated = F.relu(self.linear(agts_updated))
+            return agts_updated
